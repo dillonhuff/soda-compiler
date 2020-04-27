@@ -322,7 +322,7 @@ def print_dataflow_hls_interface(printer, top_name, inputs, outputs):
 
   println('template<int kBurstWidth>')
   print_func('void BurstRead', [
-      'hls::stream<ap_uint<kBurstWidth>>* to', 'ap_uint<kBurstWidth>* from',
+      'hls::stream<ap_uint<kBurstWidth> >* to', 'ap_uint<kBurstWidth>* from',
       'uint64_t data_num'], align=0)
   do_scope()
   println('load_epoch:', 0)
@@ -331,9 +331,20 @@ def print_dataflow_hls_interface(printer, top_name, inputs, outputs):
     println('to->write(from[epoch]);')
   un_scope()
 
+  println('template<typename T>')
+  print_func('void BurstRead', [
+      'hls::stream<T >* to', 'T* from',
+      'uint64_t data_num'], align=0)
+  do_scope()
+  println('load_epoch_t:', 0)
+  with printer.for_('uint64_t epoch = 0', 'epoch < data_num', '++epoch'):
+    println('#pragma HLS pipeline II=1', 0)
+    println('to->write(from[epoch]);')
+  un_scope()
+
   println('template<int kBurstWidth>')
   print_func('void BurstWrite', [
-      'ap_uint<kBurstWidth>* to', 'hls::stream<ap_uint<kBurstWidth>>* from',
+      'ap_uint<kBurstWidth>* to', 'hls::stream<ap_uint<kBurstWidth> >* from',
       'uint64_t data_num'], align=0)
   do_scope()
   println('store_epoch:', 0)
@@ -342,7 +353,18 @@ def print_dataflow_hls_interface(printer, top_name, inputs, outputs):
     println('to[epoch] = from->read();')
   un_scope()
 
-  params = ['hls::stream<{}>* {}'.format(util.get_c_type(haoda_type), name)
+  println('template<typename T>')
+  print_func('void BurstWrite', [
+      'T* to', 'hls::stream<T >* from',
+      'uint64_t data_num'], align=0)
+  do_scope()
+  println('store_epoch_t:', 0)
+  with printer.for_('uint64_t epoch = 0', 'epoch < data_num', '++epoch'):
+    println('#pragma HLS pipeline II=1', 0)
+    println('to[epoch] = from->read();')
+  un_scope()
+
+  params = ['hls::stream<{} >* {}'.format(util.get_c_type(haoda_type), name)
             for name, _, haoda_type, _ in m_axi_ports]
   print_func('void Dataflow', params, align=0)
   do_scope()
@@ -377,7 +399,7 @@ def print_dataflow_hls_interface(printer, top_name, inputs, outputs):
   println()
 
   for _, _, haoda_type, name in m_axi_ports:
-    println('hls::stream<{c_type}> {name}("{name}");'.format(
+    println('hls::stream<{c_type} > {name}("{name}");'.format(
         c_type=util.get_c_type(haoda_type), name=name))
     println('#pragma HLS stream variable={name} depth=32'.format(name=name), 0)
 
