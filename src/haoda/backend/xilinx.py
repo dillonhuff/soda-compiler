@@ -186,7 +186,7 @@ def get_device_info(platform_path):
   """
   device_name = os.path.basename(platform_path)
   with zipfile.ZipFile(os.path.join(
-      platform_path, 'hw', device_name + '.dsa')) as platform:
+      platform_path, 'hw', device_name + '.xsa')) as platform:
     with platform.open(device_name + '.hpfm') as metadata:
       platform_info = ET.parse(metadata).find('./xd:component/xd:platformInfo',
                                               XILINX_XML_NS)
